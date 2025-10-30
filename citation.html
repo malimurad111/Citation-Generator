@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pro Citation — V5 Elite UI (Royal Blue Glass)</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<!-- libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.5.0/docx.umd.js"></script>
+
+<style>
+  /* ---------------- Theme variables (root + dark) ---------------- */
+  :root{
+    --bg: #f6fafc;
+    --panel: rgba(255,255,255,0.9);
+    --muted: #64748b;
+    --text: #071124;
+    --accent-start: #2563eb; /* royal blue */
+    --accent-end:   #4f46e5;
+    --glass-a: rgba(255,255,255,0.66);
+    --card-shadow: 0 12px 40px rgba(14,30,80,0.06);
+    --glow: rgba(37,99,235,0.12);
+    --radius: 14px;
+    --transition: 360ms cubic-bezier(.2,.9,.2,1);
+  }
+  html.dark {
+    --bg: #071228;
+    --panel: rgba(10,20,30,0.55);
+    --muted: #94a3b8;
+    --text: #e6eef8;
+    --glass-a: rgba(255,255,255,0.03);
+    --card-shadow: 0 12px 40px rgba(2,6,23,0.6);
+    --glow: rgba(59,130,246,0.18);
+  }
+
+  /* ---------------- Base ---------------- */
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; transition: background var(--transition), color var(--transition)}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit}
+
+  /* ---------------- Layout ---------------- */
+  .app { display:grid; grid-template-columns:260px 1fr; gap:20px; min-height:100vh; padding:20px; align-items:start; }
+  @media (max-width:980px){ .app { grid-template-columns:1fr; padding:12px } }
+
+  /* ---------------- Sidebar ---------------- */
+  .sidebar {
+    height: calc(100vh - 40px);
+    position:sticky; top:20px; padding:18px; border-radius:var(--radius);
+    background: linear-gradient(180deg, var(--glass-a), rgba(255,255,255,0.35));
+    border:1px solid rgba(255,255,255,0.6);
+    box-shadow:var(--card-shadow); display:flex; flex-direction:column; gap:12px; transition: transform var(--transition), opacity var(--transition);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  html.dark .sidebar{ background: linear-gradient(180deg, var(--glass-a), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); }
+
+  .sidebar.collapsed { transform: translateX(-120%); opacity:0; pointer-events:none; }
+
+  .logo{display:flex;gap:12px;align-items:center}
+  .mark{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;background:linear-gradient(135deg,var(--accent-start),var(--accent-end)); box-shadow:0 12px 30px rgba(79,70,229,0.14)}
+  .app-title{font-weight:700}
+  .sidebar .small{font-size:13px;color:var(--muted)}
+
+  .nav{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .nav button{background:transparent;border:1px solid rgba(7,17,36,0.04);padding:10px 12px;border-radius:10px;text-align:left;cursor:pointer;font-weight:600;transition:all 200ms}
+  .nav button.active{background:linear-gradient(90deg,var(--accent-start),var(--accent-end));color:#fff;box-shadow:0 12px 30px var(--glow)}
+
+  /* mobile hamburger */
+  .hamburger{position:fixed;left:16px;top:14px;z-index:120;border-radius:10px;padding:8px;background:linear-gradient(90deg,var(--accent-start),var(--accent-end));color:white;border:none;display:none;box-shadow:0 10px 30px var(--glow)}
+  @media (max-width:980px){ .hamburger{ display:block } }
+
+  /* ---------------- Workspace ---------------- */
+  .workspace{display:flex;flex-direction:column;gap:16px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-radius:12px;background:linear-gradient(90deg,var(--accent-start),var(--accent-end));color:white;box-shadow:0 12px 40px var(--glow)}
+  .topbar .right{display:flex;align-items:center;gap:14px}
+
+  .card{background:var(--panel);border-radius:12px;padding:18px;box-shadow:var(--card-shadow);border:1px solid rgba(255,255,255,0.6);transition:transform 220ms;backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);}
+  html.dark .card{ border:1px solid rgba(255,255,255,0.04); }
+
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+  @media (max-width:980px){ .grid{ grid-template-columns:1fr } }
+
+  label{display:block;color:var(--muted);font-size:13px;margin-bottom:8px}
+  textarea,input,select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(7,17,36,0.06);background:transparent;color:var(--text);font-size:15px}
+  textarea{min-height:140px;resize:vertical;white-space:pre-wrap}
+  .controls{display:flex;gap:10px;flex-wrap:wrap}
+
+  /* ---------------- Buttons ---------------- */
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent-start),var(--accent-end));color:white;font-weight:700;cursor:pointer;box-shadow:0 12px 30px var(--glow);transition:transform 140ms, box-shadow 140ms}
+  .btn.secondary{background:transparent;color:var(--text);border:1px solid rgba(7,17,36,0.06);box-shadow:none;font-weight:600}
+  .btn:active{transform:translateY(1px)}
+
+  .status{margin-top:12px;padding:10px;border-radius:10px;background:rgba(7,17,36,0.03);color:var(--muted);font-size:14px}
+
+  /* ---------------- Reference cards (glass + glow) ---------------- */
+  .refs{display:flex;flex-direction:column;gap:12px;max-height:64vh;overflow:auto;padding-right:6px}
+  .ref{
+    display:flex;justify-content:space-between;gap:12px;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.8), rgba(249,251,255,0.95));
+    box-shadow:0 10px 30px rgba(14,30,80,0.06); word-break:break-word; overflow-wrap:anywhere; align-items:flex-start;
+    transition: transform 260ms, box-shadow 260ms, background 260ms, opacity 260ms;
+    border: 1px solid rgba(255,255,255,0.6);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  html.dark .ref{
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+  }
+  .ref:hover{ transform: translateY(-6px); box-shadow: 0 20px 60px var(--glow); border-color: rgba(59,130,246,0.14); }
+
+  .ref .left{flex:1}
+  .ref .text{font-size:14px;line-height:1.35;color:var(--text)}
+  .ref .meta{margin-top:8px;font-size:12px;color:var(--muted)}
+  .ref .actions{display:flex;flex-direction:column;gap:8px;align-items:flex-end;min-width:96px}
+
+  .ghost{padding:8px 10px;border-radius:8px;background:transparent;border:1px solid rgba(7,17,36,0.06);cursor:pointer}
+  .ghost.danger{border-color:rgba(220,38,38,0.12);color:#b91c1c}
+
+  /* ---------------- Modal + toast ---------------- */
+  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.45);z-index:160}
+  .modal .panel{width:100%;max-width:720px;padding:16px;border-radius:12px;background:var(--panel)}
+  .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(16px);bottom:28px;background:#0b1220;color:white;padding:10px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;z-index:200}
+  .toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+
+  /* small util */
+  .small{font-size:13px}
+  .wrap{overflow-wrap:anywhere;word-break:break-word;white-space:normal}
+</style>
+</head>
+<body>
+<!-- hamburger -->
+<button id="hamburger" class="hamburger" aria-label="Open menu" style="display:none">☰</button>
+
+<div class="app" id="app">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="logo">
+      <div class="mark" aria-hidden>📚</div>
+      <div>
+        <div class="app-title">Citation Pro</div>
+        <div class="small muted">V5 • Elite</div>
+      </div>
+    </div>
+
+    <nav class="nav" role="navigation">
+      <button data-panel="generate" class="active">Generate</button>
+      <button data-panel="history">History</button>
+      <button data-panel="settings">Settings</button>
+      <button data-panel="help">Help</button>
+    </nav>
+
+    <div style="margin-top:auto">
+      <div class="small muted">Saved sessions</div>
+      <div id="sessionsCount" style="font-weight:600">0</div>
+    </div>
+  </aside>
+
+  <!-- Workspace -->
+  <main class="workspace">
+    <div class="topbar" role="banner">
+      <div>
+        <div style="font-weight:700">Pro Citation — Dashboard</div>
+        <div class="small muted">Glass UI • Royal Blue • Animated</div>
+      </div>
+
+      <div class="right">
+        <div id="themeLabel" class="small muted">Light</div>
+        <div id="themeToggle" role="button" title="Toggle theme" style="cursor:pointer">
+          <div id="toggleTrack" style="width:54px;height:28px;border-radius:999px;padding:4px;background:rgba(255,255,255,0.12);display:flex;align-items:center;transition:all 320ms;justify-content:flex-start">
+            <div id="toggleDot" style="width:20px;height:20px;border-radius:50%;background:white;box-shadow:0 6px 18px rgba(2,6,23,0.18);display:flex;align-items:center;justify-content:center;font-size:12px;transition:transform .32s">☀️</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- generate panel -->
+    <section id="panel-generate" class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <h2 style="margin:0">Create citations</h2>
+          <div class="small muted">Paste DOIs or book titles — one per line. Export TXT / PDF / DOCX.</div>
+        </div>
+        <div class="small muted">Shortcut: <strong>Ctrl/Cmd + Enter</strong></div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="grid">
+        <div>
+          <label for="multiInput">Input</label>
+          <textarea id="multiInput" placeholder="10.1000/xyz or Book Title — one per line"></textarea>
+
+          <div style="height:12px"></div>
+
+          <label class="small">Citation style</label>
+          <select id="styleSelect">
+            <option>APA</option><option>MLA</option><option>Harvard</option><option>Custom</option>
+          </select>
+          <input id="customTemplate" placeholder="Custom template e.g. {author}, {year}, {title}, {publisher}, {url}" style="margin-top:8px;display:none" />
+
+          <div class="controls" style="margin-top:12px">
+            <button class="btn" id="generateBtn">Generate</button>
+            <button class="btn secondary" id="copyAll">Copy All</button>
+            <button class="btn secondary" id="clearAll">Clear</button>
+            <button class="btn secondary" id="manualBtn">Manual</button>
+          </div>
+
+          <div id="status" class="status">Idle</div>
+        </div>
+
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="small">Export</div>
+              <div class="small muted">Save or copy</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn secondary small" id="txtBtn">TXT</button>
+              <button class="btn secondary small" id="pdfBtn">PDF</button>
+              <button class="btn secondary small" id="docBtn">Word</button>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+          <div class="small" style="margin-bottom:8px">References (sorted)</div>
+          <div id="refs" class="refs" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- history -->
+    <section id="panel-history" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0">History</h3>
+        <div class="small muted">Saved sessions</div>
+      </div>
+
+      <div style="height:12px"></div>
+      <div id="historyList" class="refs"></div>
+
+      <div style="height:12px"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" id="saveSession">Save Session</button>
+        <button class="btn secondary" id="clearHistory">Clear History</button>
+      </div>
+    </section>
+
+    <!-- settings -->
+    <section id="panel-settings" class="card" style="display:none">
+      <h3 style="margin:0">Settings</h3>
+      <div style="height:12px"></div>
+
+      <label class="small">Default citation style</label>
+      <select id="defaultStyle"><option>APA</option><option>MLA</option><option>Harvard</option><option>Custom</option></select>
+
+      <div style="height:8px"></div>
+      <label class="small">Custom template</label>
+      <input id="defaultTemplate" placeholder="{author}, {year}, {title}, {publisher}, {url}" />
+
+      <div style="height:8px"></div>
+      <label class="small">Theme</label>
+      <select id="defaultTheme"><option value="light">Light</option><option value="dark">Dark</option></select>
+
+      <div style="height:8px"></div>
+      <label class="small">History retention</label>
+      <select id="historyRetention"><option value="50">Keep last 50</option><option value="100">Keep last 100</option><option value="0">Keep all</option></select>
+
+      <div style="height:12px"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" id="applySettings">Apply</button>
+        <button class="btn secondary" id="resetSettings">Reset</button>
+      </div>
+    </section>
+
+    <!-- help -->
+    <section id="panel-help" class="card" style="display:none">
+      <h3 style="margin:0">Help</h3>
+      <div style="height:10px"></div>
+      <div class="small muted">Quick tips</div>
+      <ul>
+        <li>Paste DOIs (start with <code>10.</code>) or titles, one per line.</li>
+        <li>Use <strong>Ctrl/Cmd + Enter</strong> to generate quickly.</li>
+        <li>Save sessions in History to reuse later.</li>
+        <li>Custom template supports: <code>{author}</code>, <code>{year}</code>, <code>{title}</code>, <code>{publisher}</code>, <code>{url}</code>.</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<!-- Manual modal -->
+<div id="manualModal" class="modal" aria-hidden="true">
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">Manual Citation</h3>
+      <button id="modalClose" class="ghost">✕</button>
+    </div>
+
+    <div style="height:12px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <input id="mAuthor" placeholder="Author (Last, First)"/>
+      <input id="mYear" placeholder="Year"/>
+      <input id="mTitle" placeholder="Title" style="grid-column:1/3"/>
+      <input id="mPublisher" placeholder="Publisher"/>
+      <input id="mURL" placeholder="URL"/>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+      <button id="modalSave" class="btn">Save</button>
+      <button id="modalCancel" class="btn secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast">Message</div>
+
+<script>
+/* ---------------- State & elements ---------------- */
+const sidebar = document.getElementById('sidebar');
+const navButtons = document.querySelectorAll('.nav button');
+const panels = { generate: 'panel-generate', history: 'panel-history', settings: 'panel-settings', help: 'panel-help' };
+
+const multiInput = document.getElementById('multiInput');
+const styleSelect = document.getElementById('styleSelect');
+const customTemplate = document.getElementById('customTemplate');
+const generateBtn = document.getElementById('generateBtn');
+const copyAllBtn = document.getElementById('copyAll');
+const clearAllBtn = document.getElementById('clearAll');
+const manualBtn = document.getElementById('manualBtn');
+const statusEl = document.getElementById('status');
+
+const txtBtn = document.getElementById('txtBtn');
+const pdfBtn = document.getElementById('pdfBtn');
+const docBtn = document.getElementById('docBtn');
+
+const refsEl = document.getElementById('refs');
+const historyListEl = document.getElementById('historyList');
+const sessionsCount = document.getElementById('sessionsCount');
+
+const manualModal = document.getElementById('manualModal');
+const modalSave = document.getElementById('modalSave');
+const modalCancel = document.getElementById('modalCancel');
+const modalClose = document.getElementById('modalClose');
+const mAuthor = document.getElementById('mAuthor');
+const mYear = document.getElementById('mYear');
+const mTitle = document.getElementById('mTitle');
+const mPublisher = document.getElementById('mPublisher');
+const mURL = document.getElementById('mURL');
+
+const themeToggle = document.getElementById('themeToggle');
+const themeLabel = document.getElementById('themeLabel');
+const toggleTrack = document.getElementById('toggleTrack');
+const toggleDot = document.getElementById('toggleDot');
+
+const toast = document.getElementById('toast');
+const hamburger = document.getElementById('hamburger');
+
+const saveSessionBtn = document.getElementById('saveSession');
+const clearHistoryBtn = document.getElementById('clearHistory');
+const defaultStyleEl = document.getElementById('defaultStyle');
+const defaultTemplateEl = document.getElementById('defaultTemplate');
+const defaultThemeEl = document.getElementById('defaultTheme');
+const historyRetentionEl = document.getElementById('historyRetention');
+const applySettingsBtn = document.getElementById('applySettings');
+const resetSettingsBtn = document.getElementById('resetSettings');
+
+let citations = JSON.parse(localStorage.getItem('citations')||'[]');
+let historySessions = JSON.parse(localStorage.getItem('cit_history')||'[]');
+let pendingManualResolve = null;
+
+/* ---------------- Helpers ---------------- */
+function showToast(msg, t=1600){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), t); }
+function setStatus(msg, tone='neutral'){ statusEl.textContent = msg; if(tone==='error'){ statusEl.style.background='rgba(220,38,38,0.06)'; statusEl.style.color='#b91c1c'; } else if(tone==='success'){ statusEl.style.background='rgba(16,185,129,0.06)'; statusEl.style.color='#065f46'; } else { statusEl.style.background=''; statusEl.style.color=''; } }
+function saveState(){ localStorage.setItem('citations', JSON.stringify(citations)); }
+function saveHistory(){ localStorage.setItem('cit_history', JSON.stringify(historySessions)); }
+function setSetting(k,v){ localStorage.setItem(k,v); }
+function getSetting(k,def){ return localStorage.getItem(k) ?? def; }
+
+/* ---------------- Panels & sidebar ---------------- */
+navButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    navButtons.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    Object.values(panels).forEach(id=> document.getElementById(id).style.display='none');
+    document.getElementById(panels[btn.dataset.panel]).style.display='block';
+    if(window.innerWidth <= 980){ sidebar.classList.add('collapsed'); hamburger.style.display='block'; }
+  });
+});
+
+function updateHamburger(){
+  if(window.innerWidth <= 980){ hamburger.style.display='block'; sidebar.classList.add('collapsed'); } else { hamburger.style.display='none'; sidebar.classList.remove('collapsed'); }
+}
+hamburger.addEventListener('click', ()=> { sidebar.classList.remove('collapsed'); hamburger.style.display='none'; });
+window.addEventListener('resize', updateHamburger);
+updateHamburger();
+
+/* ---------------- Theme toggle (animated, robust) ---------------- */
+function applyTheme(dark){
+  document.documentElement.classList.toggle('dark', !!dark);
+  localStorage.setItem('darkMode', !!dark ? '1' : '0');
+  themeLabel.textContent = !!dark ? 'Dark' : 'Light';
+  // animate track
+  if(toggleTrack) toggleTrack.style.justifyContent = !!dark ? 'flex-end' : 'flex-start';
+  if(toggleDot) toggleDot.textContent = !!dark ? '🌙' : '☀️';
+}
+themeToggle.addEventListener('click', ()=>{
+  const now = !document.documentElement.classList.contains('dark');
+  applyTheme(now);
+  showToast(now ? 'Dark mode' : 'Light mode');
+});
+if(localStorage.getItem('darkMode') === '1'){ applyTheme(true); }
+
+/* ---------------- Format & render ---------------- */
+function formatCitation(c, n){
+  const style = c.style || defaultStyleEl?.value || 'APA';
+  const tpl = style === 'Custom' ? (customTemplate.value || defaultTemplateEl.value || '{author}, {year}, {title}, {publisher}, {url}') : null;
+  if(style === 'APA') return `[${n}] ${c.author} (${c.year}). ${c.title}. ${c.publisher}. ${c.url}`;
+  if(style === 'MLA') return `[${n}] ${c.author}. "${c.title}". ${c.publisher}, ${c.year}, ${c.url}`;
+  if(style === 'Harvard') return `[${n}] ${c.author} (${c.year}) ${c.title}. ${c.publisher}. Available at: ${c.url}`;
+  return tpl.replace(/\{(.*?)\}/g, (_,k)=> c[k.trim()] || '');
+}
+function esc(s=''){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+function renderRefs(){
+  citations.sort((a,b)=> (a.author||'').toLowerCase().localeCompare((b.author||'').toLowerCase()));
+  saveState();
+  refsEl.innerHTML = '';
+  if(!citations.length){ refsEl.innerHTML = '<div class="small muted">No citations yet.</div>'; return; }
+  citations.forEach((c,i)=>{
+    const r = document.createElement('div'); r.className='ref';
+    const left = document.createElement('div'); left.className='left';
+    const t = document.createElement('div'); t.className='text wrap'; t.innerHTML = esc(formatCitation(c,i+1));
+    const m = document.createElement('div'); m.className='meta'; m.textContent = c.source || '';
+    left.appendChild(t); left.appendChild(m);
+
+    const actions = document.createElement('div'); actions.className='actions';
+    const copy = document.createElement('button'); copy.className='ghost'; copy.textContent='Copy';
+    copy.addEventListener('click', ()=> { navigator.clipboard.writeText(formatCitation(c,i+1)).then(()=>showToast('Copied')); });
+    const remove = document.createElement('button'); remove.className='ghost danger'; remove.textContent='Remove';
+    remove.addEventListener('click', ()=> { citations.splice(i,1); renderRefs(); showToast('Removed'); });
+    actions.appendChild(copy); actions.appendChild(remove);
+
+    r.appendChild(left); r.appendChild(actions);
+    refsEl.appendChild(r);
+
+    // animate
+    r.style.opacity = 0; r.style.transform = 'translateY(8px)';
+    requestAnimationFrame(()=>{ r.style.transition = 'opacity .28s, transform .28s'; r.style.opacity = 1; r.style.transform = 'translateY(0)'; });
+  });
+}
+
+/* ---------------- Fetch helpers ---------------- */
+async function fetchDOI(doi){
+  try{
+    const res = await fetch(`https://api.crossref.org/works/${encodeURIComponent(doi)}`);
+    if(!res.ok) return null;
+    const j = await res.json(); const m = j.message;
+    if(!m) return null;
+    const author = m.author && m.author[0] ? `${m.author[0].family}, ${m.author[0].given?.split(' ')[0]||''}` : 'Unknown';
+    const year = m.issued?.['date-parts']?.[0]?.[0] || 'n.d.';
+    const title = Array.isArray(m.title) ? m.title[0] : (m.title || doi);
+    const publisher = (m['container-title'] && m['container-title'][0]) || m.publisher || '';
+    const url = m.URL || `https://doi.org/${doi}`;
+    return { author, year, title, publisher, url, style: styleSelect.value, source: 'CrossRef' };
+  }catch(e){ return null; }
+}
+
+async function fetchBook(title){
+  try{
+    const res = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&limit=1`);
+    if(!res.ok) return null;
+    const j = await res.json(); if(!j.docs || !j.docs.length) return null;
+    const b = j.docs[0];
+    return { author: (b.author_name && b.author_name[0]) || 'Unknown', year: b.first_publish_year || 'n.d.', title: b.title || title, publisher: (b.publisher && b.publisher[0]) || '', url: b.key ? `https://openlibrary.org${b.key}` : '', style: styleSelect.value, source: 'OpenLibrary' };
+  }catch(e){ return null; }
+}
+
+/* ---------------- Manual modal promise ---------------- */
+function openManual(prefill=''){ return new Promise(resolve => { pendingManualResolve = resolve; mTitle.value = prefill || ''; mAuthor.value=''; mYear.value=''; mPublisher.value=''; mURL.value=''; manualModal.style.display='flex'; manualModal.setAttribute('aria-hidden','false'); }); }
+function closeManual(res=null){ manualModal.style.display='none'; manualModal.setAttribute('aria-hidden','true'); if(pendingManualResolve){ pendingManualResolve(res); pendingManualResolve = null; } }
+
+/* ---------------- Main generation flow ---------------- */
+async function handleGenerate(){
+  const raw = multiInput.value.trim();
+  if(!raw){ setStatus('Enter at least one DOI or title','error'); showToast('Enter input'); return; }
+  const inputs = raw.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean);
+  setStatus('Generating — please wait...');
+  for(const item of inputs){
+    let c = null;
+    if(/^10\.\d{2,}\/?/.test(item) || /^10\.\d+\//.test(item)){
+      c = await fetchDOI(item);
+      if(!c){
+        try{
+          const s = await fetch(`https://api.crossref.org/works?query.title=${encodeURIComponent(item)}&rows=1`);
+          if(s.ok){ const sj = await s.json(); const it = sj.message.items && sj.message.items[0]; if(it){ c = { author: (it.author && it.author[0]) ? `${it.author[0].family}, ${it.author[0].given?.split(' ')[0]||''}` : 'Unknown', year: it.issued?.['date-parts']?.[0]?.[0] || 'n.d.', title: it.title?.[0] || item, publisher: it['container-title']?.[0] || '', url: it.URL || '', style: styleSelect.value, source: 'CrossRef' }; } }
+        }catch(e){}
+      }
+    }
+    if(!c) c = await fetchBook(item);
+    if(!c){
+      setStatus(`Manual required: "${item}"`, 'error'); showToast('Manual input required');
+      const manual = await openManual(item);
+      if(manual){ citations.push(manual); setStatus('Manual saved','success'); showToast('Manual saved'); }
+      else setStatus('Manual skipped','neutral');
+    } else {
+      citations.push(c); setStatus(`Fetched: ${c.title}`,'success'); showToast('Fetched');
+    }
+  }
+  renderRefs();
+  setStatus(`Done — ${citations.length} citations`,'success');
+}
+
+/* ---------------- Modal & buttons ---------------- */
+modalSave.addEventListener('click', ()=> {
+  const obj = { author: (mAuthor.value.trim()||'Unknown'), year: (mYear.value.trim()||'n.d.'), title: (mTitle.value.trim()||'Untitled'), publisher: (mPublisher.value.trim()||''), url: (mURL.value.trim()||''), style: styleSelect.value, source: 'Manual' };
+  closeManual(obj); citations.push(obj); renderRefs(); showToast('Manual saved'); setStatus('Manual saved','success');
+});
+modalCancel.addEventListener('click', ()=> closeManual(null));
+modalClose.addEventListener('click', ()=> closeManual(null));
+
+generateBtn.addEventListener('click', handleGenerate);
+multiInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); handleGenerate(); } });
+
+txtBtn.addEventListener('click', ()=> {
+  if(!citations.length){ showToast('No citations'); setStatus('No citations','error'); return; }
+  const txt = citations.map((c,i)=>formatCitation(c,i+1)).join('\n\n');
+  saveAs(new Blob([txt], { type:'text/plain;charset=utf-8' }), 'citations.txt');
+  showToast('TXT downloaded'); setStatus('Downloaded TXT','success');
+});
+
+pdfBtn.addEventListener('click', ()=> {
+  if(!citations.length){ showToast('No citations'); setStatus('No citations','error'); return; }
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'mm', format:'a4' }); let y = 12; doc.setFontSize(11);
+  citations.forEach((c,i)=>{ const lines = doc.splitTextToSize(formatCitation(c,i+1), 180); doc.text(lines, 12, y); y += lines.length*6 + 4; if(y > 280){ doc.addPage(); y = 12; }});
+  doc.save('citations.pdf'); showToast('PDF downloaded'); setStatus('Downloaded PDF','success');
+});
+
+docBtn.addEventListener('click', async ()=> {
+  if(!citations.length){ showToast('No citations'); setStatus('No citations','error'); return; }
+  try{
+    const { Document, Packer, Paragraph, TextRun } = docx;
+    const doc = new Document({ sections: [ { children: citations.map((c,i)=> new Paragraph({ children: [ new TextRun(formatCitation(c,i+1)) ] })) } ] });
+    const blob = await Packer.toBlob(doc); saveAs(blob, 'citations.docx'); showToast('Word downloaded'); setStatus('Downloaded Word','success');
+  }catch(err){
+    console.error('docx error', err);
+    try{
+      const fallback = new Blob([citations.map((c,i)=>formatCitation(c,i+1)).join('\n\n')], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      saveAs(fallback, 'citations.docx'); showToast('Word downloaded (fallback)'); setStatus('Downloaded Word (fallback)','success');
+    }catch(e){ showToast('Word failed'); setStatus('Word download failed','error'); }
+  }
+});
+
+copyAllBtn.addEventListener('click', ()=> {
+  if(!citations.length){ showToast('No citations'); setStatus('No citations','error'); return; }
+  navigator.clipboard.writeText(citations.map((c,i)=>formatCitation(c,i+1)).join('\n\n')).then(()=>{ showToast('All copied'); setStatus('Copied all','success'); });
+});
+
+clearAllBtn.addEventListener('click', ()=> {
+  if(!confirm('Clear all citations?')) return;
+  citations = []; saveState(); renderRefs(); showToast('Cleared'); setStatus('Cleared','success');
+});
+
+manualBtn.addEventListener('click', ()=> openManual(''));
+
+/* ---------------- History ---------------- */
+document.getElementById('saveSession')?.addEventListener?.('click', ()=> {
+  if(!citations.length){ showToast('Nothing to save'); setStatus('No citations','error'); return; }
+  const name = prompt('Session name (optional):') || `Session ${new Date().toLocaleString()}`;
+  const retention = Number(historyRetentionEl?.value || 50);
+  historySessions.push({ name, created: Date.now(), items: JSON.parse(JSON.stringify(citations)) });
+  if(retention > 0 && historySessions.length > retention) historySessions = historySessions.slice(-retention);
+  saveHistory(); renderHistory(); showToast('Session saved'); setStatus('Session saved','success');
+});
+document.getElementById('clearHistory')?.addEventListener?.('click', ()=> {
+  if(!confirm('Clear saved sessions?')) return; historySessions = []; saveHistory(); renderHistory(); showToast('History cleared'); setStatus('History cleared','success');
+});
+
+function renderHistory(){
+  historyListEl.innerHTML = ''; sessionsCount.textContent = historySessions.length;
+  if(!historySessions.length){ historyListEl.innerHTML = '<div class="small muted">No saved sessions.</div>'; return; }
+  historySessions.slice().reverse().forEach(s=>{
+    const el = document.createElement('div'); el.className='ref';
+    const left = document.createElement('div'); left.style.flex='1';
+    left.innerHTML = `<div style="font-weight:600">${esc(s.name||'Session')}</div><div class="small muted">${new Date(s.created).toLocaleString()} — ${s.items.length} citations</div>`;
+    const actions = document.createElement('div'); actions.className='actions';
+    const load = document.createElement('button'); load.className='ghost'; load.textContent='Load';
+    load.addEventListener('click', ()=>{ citations = JSON.parse(JSON.stringify(s.items)); renderRefs(); showToast('Session loaded'); setStatus('Loaded session','success'); document.querySelector('[data-panel="generate"]').click(); });
+    const del = document.createElement('button'); del.className='ghost danger'; del.textContent='Delete';
+    del.addEventListener('click', ()=>{ if(confirm('Delete this session?')){ historySessions.splice(historySessions.indexOf(s),1); saveHistory(); renderHistory(); showToast('Deleted'); }});
+    actions.appendChild(load); actions.appendChild(del);
+    el.appendChild(left); el.appendChild(actions); historyListEl.appendChild(el);
+  });
+}
+
+/* ---------------- Settings ---------------- */
+applySettingsBtn?.addEventListener?.('click', ()=> {
+  setSetting('defaultStyle', defaultStyleEl.value);
+  setSetting('defaultTemplate', defaultTemplateEl.value);
+  setSetting('defaultTheme', defaultThemeEl.value);
+  setSetting('historyRetention', historyRetentionEl.value);
+  if(defaultThemeEl.value === 'dark') applyTheme(true); else applyTheme(false);
+  showToast('Settings saved'); setStatus('Settings applied','success');
+});
+resetSettingsBtn?.addEventListener?.('click', ()=> {
+  if(!confirm('Reset settings?')) return;
+  defaultStyleEl.value = 'APA'; defaultTemplateEl.value = '{author}, {year}, {title}, {publisher}, {url}'; defaultThemeEl.value = 'light'; historyRetentionEl.value = '50'; applySettingsBtn.click();
+});
+(function initSettings(){
+  const ds = getSetting('defaultStyle','APA'); defaultStyleEl.value = ds; styleSelect.value = ds;
+  const dt = getSetting('defaultTemplate','{author}, {year}, {title}, {publisher}, {url}'); defaultTemplateEl.value = dt; customTemplate.value = dt;
+  const dth = getSetting('defaultTheme','light'); defaultThemeEl.value = dth; if(dth === 'dark') applyTheme(true);
+  const hr = getSetting('historyRetention','50'); historyRetentionEl.value = hr;
+})();
+
+/* ---------------- Init ---------------- */
+renderRefs(); renderHistory(); setStatus('Idle');
+document.querySelector('[data-panel="generate"]').click();
+updateHamburger();
+
+/* accessibility: ctrl/cmd+enter to generate */
+multiInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); handleGenerate(); } });
+
+/* ensure toggle visual on load */
+(function initToggleVisual(){ const dark = localStorage.getItem('darkMode') === '1'; if(dark) applyTheme(true); else applyTheme(false); })();
+</script>
+</body>
+</html>
